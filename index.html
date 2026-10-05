@@ -11,26 +11,26 @@
 #five-s-app{border-radius:12px;max-width:1440px;margin:auto}#five-s-app .date{padding-right:0}#five-s-app .sample{color:var(--s-green);background:var(--s-green-soft)}#five-s-app .s-top{padding-right:26px}#five-s-app .evidence-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:540px){body{padding:0}#five-s-app{border-radius:0}#five-s-app .s-top{padding-right:18px}#five-s-app .evidence-grid{grid-template-columns:1fr}#five-s-app .s-nav{gap:0}#five-s-app .s-tab{padding:9px 7px}}
 </style></head><body>
 <div id="five-s-app"><header class="s-top"><div class="brand"><div class="brand-mark">6S</div><div><h1>6S Action Dashboard</h1><div class="context">HAMT · Final Assembly</div></div></div><div class="date"><div class="sample">Google Sheets</div><div class="context" id="s-date"></div><div class="context" id="s-account"></div></div></header>
-<nav class="s-nav" aria-label="หน้าจัดการ 6S"><button class="s-tab cursor-interaction" type="button" data-page="overview" aria-selected="true">ภาพรวม</button><button class="s-tab cursor-interaction" type="button" data-page="tasks" aria-selected="false">ติดตามงาน <span class="nav-count" id="s-open-nav">—</span></button><button class="s-tab cursor-interaction" type="button" data-page="repeat" aria-selected="false">ปัญหาเกิดซ้ำ</button><button class="s-tab cursor-interaction" type="button" data-page="audits" aria-selected="false">รอบตรวจ</button><button class="s-tab cursor-interaction" type="button" data-refresh="true">↻ โหลดข้อมูลใหม่</button><button class="s-tab cursor-interaction" type="button" data-connect="frame">เชื่อมบัญชี Google</button></nav><main class="s-content" id="s-main"></main><div id="s-live" aria-live="polite" style="position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden"></div></div>
+<nav class="s-nav" aria-label="หน้าจัดการ 6S"><button class="s-tab cursor-interaction" type="button" data-page="overview" aria-selected="true">ภาพรวม</button><button class="s-tab cursor-interaction" type="button" data-page="tasks" aria-selected="false">ติดตามงาน <span class="nav-count" id="s-open-nav">—</span></button><button class="s-tab cursor-interaction" type="button" data-page="repeat" aria-selected="false">ปัญหาเกิดซ้ำ</button><button class="s-tab cursor-interaction" type="button" data-page="audits" aria-selected="false">รอบตรวจ</button><button class="s-tab cursor-interaction" type="button" data-refresh="true">↻ โหลดข้อมูลใหม่</button><label class="s-flex" style="padding:6px 0;margin-left:auto;gap:8px;font-size:12px">ชื่อผู้ใช้งาน <select id="s-person" class="s-select" style="max-width:260px" disabled><option value="">ดูอย่างเดียว / เลือกชื่อตัวเอง</option></select></label></nav><main class="s-content" id="s-main"></main><div id="s-live" aria-live="polite" style="position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden"></div></div>
 <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <!-- SET YOUR APPS SCRIPT WEB APP URL HERE -->
 <script>/* Paste the Apps Script Web app URL ending in /exec. This URL is public configuration. */
 window.FIVE_S_CONFIG = Object.freeze({
-  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzkUJfomSNQCgsPd3gmKSHOXU2DjhTZY-xlxzLIrNQDkp5E5coFhTn_OYmUHA8Kgicq6w/exec',
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycby6MRtHy7a5qqrV_xLsJ6iDDkyaV2c59XbOYRJWx3DllL-wT7wcKctzO_v2JGw3ZM7cnA/exec', // วาง URL /exec ของ Web app ใหม่ที่ Execute as: Me และ Who has access: Anyone
   CONNECT_TIMEOUT_MS: 30000,
   REQUEST_TIMEOUT_MS: 90000
 });
 </script>
-<script>/* Google-authenticated Apps Script transport for a GitHub Pages frontend. */
+<script>/* Anonymous Apps Script connection. The operator is a name selected by the user. */
 (() => {
   'use strict';
   const protocol=1,methods=new Set(['getDashboardData','saveIssue','saveAudit','getEvidenceImage']);
   const cfg=window.FIVE_S_CONFIG||{},pending=new Map();
-  let frame=null,popup=null,peer=null,peerOrigin='',channel='',ready=false,connection=null,connectionTimer=null,popupMonitor=null,sequence=0;
+  let frame=null,peer=null,peerOrigin='',channel='',ready=false,connection=null,connectionTimer=null,sequence=0,actorKey='';
   const number=(v,fallback,min,max)=>Math.max(min,Math.min(max,Number(v)||fallback));
   const error=(message,kind)=>{const e=new Error(message);if(kind)e.kind=kind;return e;};
   function endpoint(){
-    if(!cfg.WEB_APP_URL)throw error('ยังไม่ได้ตั้ง WEB_APP_URL ในไฟล์ HTML');
+    if(!cfg.WEB_APP_URL)throw error('ยังไม่ได้ตั้ง WEB_APP_URL ด้านบนไฟล์ index.html เป็น URL ของ Web app ใหม่');
     let url;try{url=new URL(cfg.WEB_APP_URL);}catch(_){throw error('URL เชื่อมต่อไม่ถูกต้อง');}
     if(url.protocol!=='https:'||url.hostname!=='script.google.com'||!/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url.pathname))throw error('ใช้ URL Web app ของ Google Apps Script ที่ลงท้าย /exec');
     if(location.protocol!=='https:')throw error('เปิด Dashboard ผ่าน GitHub Pages ที่ใช้ https://');
@@ -38,64 +38,51 @@ window.FIVE_S_CONFIG = Object.freeze({
   }
   function googleOrigin(origin){try{const u=new URL(origin);return u.protocol==='https:'&&(u.hostname==='script.google.com'||u.hostname==='script.googleusercontent.com'||/^[a-z0-9-]+-script\.googleusercontent\.com$/.test(u.hostname));}catch(_){return false;}}
   function notify(message){window.dispatchEvent(new CustomEvent('five-s-connection',{detail:{connected:ready,message}}));}
-  function rejectRequests(message){for(const p of pending.values()){clearTimeout(p.timer);p.reject(error(message,['saveIssue','saveAudit'].includes(p.method)?'WRITE_RESULT_UNKNOWN':undefined));}pending.clear();}
   function reset(message){
-    ready=false;peer=null;peerOrigin='';clearTimeout(connectionTimer);clearInterval(popupMonitor);
+    ready=false;peer=null;peerOrigin='';clearTimeout(connectionTimer);
     if(frame){frame.remove();frame=null;}
     if(connection){connection.reject(error(message));connection=null;}
-    rejectRequests(message);
+    for(const p of pending.values()){clearTimeout(p.timer);p.reject(error(message,['saveIssue','saveAudit'].includes(p.method)?'WRITE_RESULT_UNKNOWN':undefined));}
+    pending.clear();
   }
-  function post(message){if(!ready||!peer)throw error('กรุณาเชื่อมบัญชี Google ก่อน');peer.postMessage({protocol,channel,...message},peerOrigin);}
-  function connect({popup:usePopup=false}={}){
+  function post(message){if(!ready||!peer)throw error('การเชื่อมต่อข้อมูลยังไม่พร้อม');peer.postMessage({protocol,channel,...message},peerOrigin);}
+  function connect(){
+    if(ready)return Promise.resolve();
+    if(connection)return connection.promise;
     let url;try{url=endpoint();}catch(e){return Promise.reject(e);}
-    reset('กำลังเริ่มการเชื่อมต่อใหม่');
-    channel=crypto.randomUUID();
-    url.searchParams.set('view','github');url.searchParams.set('mode',usePopup?'popup':'frame');
-    url.searchParams.set('host',location.origin);url.searchParams.set('channel',channel);
-    const promise=new Promise((resolve,reject)=>{connection={resolve,reject};});
-    if(usePopup){
-      popup=window.open(url.href,'five-s-google-connection','popup,width=540,height=680');
-      if(!popup){reset('เบราว์เซอร์ยังไม่อนุญาตให้เปิดหน้าต่าง Google');return promise;}
-      popupMonitor=setInterval(()=>{try{if(popup.closed){reset('หน้าต่าง Google ปิดแล้ว กรุณาเชื่อมต่อใหม่');notify('หน้าต่าง Google ปิดแล้ว');}}catch(_){}},1000);
-    }else{
-      popup=null;frame=document.createElement('iframe');frame.title='การเชื่อมต่อ Google Sheets';frame.hidden=true;frame.src=url.href;document.body.appendChild(frame);
-    }
-    connectionTimer=setTimeout(()=>{
-      reset('ยังเชื่อมต่อไม่ได้ กรุณาเปิด Google เพื่อตรวจบัญชีและอนุญาตสิทธิ์ก่อน แล้วลองเชื่อมต่ออีกครั้ง หรือใช้ปุ่มเชื่อมผ่านหน้าต่าง Google');
-      notify('การเชื่อมต่อยังไม่พร้อม');
-    },number(cfg.CONNECT_TIMEOUT_MS,30000,10000,120000));
-    return promise;
+    reset('กำลังเริ่มการเชื่อมต่อใหม่');channel=crypto.randomUUID();
+    url.searchParams.set('view','github');url.searchParams.set('mode','frame');url.searchParams.set('host',location.origin);url.searchParams.set('channel',channel);
+    let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});connection={resolve,reject,promise};
+    frame=document.createElement('iframe');frame.title='ข้อมูล 6S จาก Google Sheets';frame.hidden=true;frame.src=url.href;
+    connectionTimer=setTimeout(()=>{reset('ยังโหลดข้อมูลไม่ได้ ให้เจ้าของระบบตรวจว่า Deploy ใหม่เป็น Execute as: Me และ Who has access: Anyone แล้วใส่ URL ใหม่ใน index.html');notify('การเชื่อมต่อยังไม่พร้อม');},number(cfg.CONNECT_TIMEOUT_MS,30000,10000,120000));
+    document.body.appendChild(frame);return promise;
   }
   function call(method,...args){
     if(!methods.has(method))return Promise.reject(error('ไม่รองรับคำสั่งนี้'));
-    if(!ready||!peer)return Promise.reject(error('กรุณาเชื่อมบัญชี Google ก่อน'));
-    const id=channel+':'+(++sequence);
+    if(!ready||!peer)return Promise.reject(error('การเชื่อมต่อข้อมูลยังไม่พร้อม'));
+    if(['saveIssue','saveAudit'].includes(method)&&!actorKey)return Promise.reject(error('เลือกชื่อตัวเองก่อนบันทึกหรืออัปเดตสถานะ'));
+    const selected=actorKey,id=channel+':'+(++sequence);
     return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{pending.delete(id);reject(error('ยังไม่ได้รับผลตอบกลับ กรุณาเชื่อมต่อและโหลดข้อมูลเพื่อตรวจสอบก่อนบันทึกเพิ่ม',['saveIssue','saveAudit'].includes(method)?'WRITE_RESULT_UNKNOWN':undefined));},number(cfg.REQUEST_TIMEOUT_MS,90000,30000,180000));
+      const timer=setTimeout(()=>{pending.delete(id);reject(error('ยังไม่ได้รับผลตอบกลับ กรุณาโหลดข้อมูลใหม่เพื่อตรวจสอบก่อนบันทึกเพิ่ม',['saveIssue','saveAudit'].includes(method)?'WRITE_RESULT_UNKNOWN':undefined));},number(cfg.REQUEST_TIMEOUT_MS,90000,30000,180000));
       pending.set(id,{resolve,reject,timer,method});
-      try{post({type:'rpc',id,method,args});}catch(e){clearTimeout(timer);pending.delete(id);reject(e);}
+      try{post({type:'rpc',id,method,args,actorKey:selected});}catch(e){clearTimeout(timer);pending.delete(id);reject(e);}
     });
   }
-  function authorize(){
-    const url=endpoint();url.searchParams.set('view','authorize');
-    const tab=window.open(url.href,'five-s-google-authorize','noopener');
-    /* noopener may intentionally return null even when the browser opened the tab. */
-    return url.href;
-  }
+  function selectPerson(key){if(typeof key!=='string'||key.length>200)throw error('ชื่อผู้ใช้งานไม่ถูกต้อง');actorKey=key.trim().toLowerCase();}
   window.addEventListener('message',event=>{
     const m=event.data;
     if(!m||typeof m!=='object'||m.protocol!==protocol||m.channel!==channel||!googleOrigin(event.origin)||!event.source)return;
     if(m.type==='ready'&&!ready&&connection){
       peer=event.source;peerOrigin=event.origin;ready=true;clearTimeout(connectionTimer);
-      const c=connection;connection=null;post({type:'ack'});c.resolve();notify('เชื่อมบัญชี Google แล้ว');return;
+      const c=connection;connection=null;post({type:'ack'});c.resolve();notify('เชื่อมต่อข้อมูลแล้ว');return;
     }
     if(event.source!==peer||event.origin!==peerOrigin||!ready)return;
     if(m.type==='result'&&typeof m.id==='string'){
       const p=pending.get(m.id);if(!p)return;clearTimeout(p.timer);pending.delete(m.id);
-      if(m.ok===true)p.resolve(m.result);else p.reject(error(typeof m.message==='string'?m.message:'บันทึกไม่สำเร็จ'));
+      if(m.ok===true)p.resolve(m.result);else p.reject(error(typeof m.message==='string'?m.message:'ดำเนินการไม่สำเร็จ'));
     }
   });
-  window.FiveSApi=Object.freeze({connect,call,authorize,isConnected:()=>ready,isConfigured:()=>!!cfg.WEB_APP_URL});
+  window.FiveSApi=Object.freeze({connect,call,selectPerson,selectedPerson:()=>actorKey,isConnected:()=>ready,isConfigured:()=>!!cfg.WEB_APP_URL});
 })();
 </script>
 <script>(()=>{
@@ -120,7 +107,7 @@ const next=x=>({new:'มอบหมายและกำหนดเสร็�
 const rootId=x=>{let p=x;const seen=new Set();while(p.parentId&&!seen.has(p.id)){seen.add(p.id);const old=db.issues.find(i=>i.id===p.parentId);if(!old)break;p=old}return p.id};
 const cluster=x=>db.issues.filter(i=>rootId(i)===rootId(x)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
 const options=(vs,current,blank)=>`${blank?'<option value="">'+esc(blank)+'</option>':''}${vs.map(v=>{const o=typeof v==='string'?{value:v,label:v}:v;return '<option value="'+esc(o.value)+'" '+(o.value===current?'selected':'')+'>'+esc(o.label)+'</option>'}).join('')}`;
-const peopleOptions=roles=>db.people.filter(p=>roles.includes(p.role)).map(p=>({value:p.email,label:p.name+' · '+p.email}));
+const peopleOptions=roles=>db.people.filter(p=>roles.includes(p.role)).map(p=>({value:p.email,label:p.name}));
 const field=(key,label,value='',type='text',required=false)=>'<label class="field">'+label+(required?' *':'')+'<input name="'+key+'" type="'+type+'" value="'+esc(value)+'" '+(required?'required':'')+'></label>';
 const text=(key,label,value='')=>'<label class="field">'+label+'<textarea name="'+key+'">'+esc(value)+'</textarea></label>';
 const select=(key,label,values,value='',required=false)=>'<label class="field">'+label+(required?' *':'')+'<select name="'+key+'" '+(required?'required':'')+'>'+options(values,value,'เลือก'+label)+'</select></label>';
@@ -132,12 +119,29 @@ function announce(s){root.querySelector('#s-live').textContent=s;}
 function rpc(fn,...args){return FiveSApi.call(fn,...args);}
 function connectionPanel(message=''){
   const configured=FiveSApi.isConfigured();
-  return '<section class="s-panel"><div class="block"><h2>เชื่อมข้อมูล  ของคุณ</h2><p class="root-note">ใช้บัญชี Google ที่มีชื่อในระบบ เพื่อบันทึกงานและตรวจติดตาม</p>'+(message?'<p class="form-error" role="alert">'+esc(message)+'</p>':'')+(configured?'<div class="s-flex" style="gap:12px;flex-wrap:wrap;margin-top:18px"><button type="button" class="s-btn cursor-interaction" data-authorize="true">1. เปิด Google เพื่อตรวจบัญชี</button><button type="button" class="s-btn main cursor-interaction" data-connect="frame">2. เชื่อมต่อและเปิด Dashboard</button></div><p class="context" style="margin-top:16px">ถ้าเชื่อมต่อไม่ได้ ให้ใช้ <button type="button" class="link-action cursor-interaction" data-connect="popup">เชื่อมผ่านหน้าต่าง Google</button> แล้วเปิดหน้าต่างนั้นค้างไว้ระหว่างทำงาน</p>':'<p class="root-note">ตั้ง WEB_APP_URL ด้านบนไฟล์ HTML เป็น URL ของ Apps Script ที่ลงท้าย /exec ตามคู่มือติดตั้งก่อน</p>')+'</div></section>';
+  return '<section class="s-panel"><div class="block"><h2>ข้อมูล 6S</h2><p class="root-note">เปิดดูได้ทันที เลือกชื่อตัวเองเมื่อต้องการบันทึกหรืออัปเดตสถานะ</p>'+(message?'<p class="form-error" role="alert">'+esc(message)+'</p>':'')+(configured?'<button type="button" class="s-btn main cursor-interaction" data-connect="frame">ลองโหลดข้อมูลอีกครั้ง</button>':'<p class="root-note">ให้เจ้าของระบบใส่ URL ของ Web app ใหม่ใน WEB_APP_URL ด้านบนไฟล์ index.html ตามคู่มือที่แนบ</p>')+'</div></section>';
 }
-async function refresh(quiet=false){
-  if(state.busy)return;
-  try{const result=await rpc('getDashboardData');db=result;state.loaded=true;state.stale=false;render();clearTimeout(timer);timer=setTimeout(()=>{if(document.visibilityState==='visible'&&!['detail','new','audit-new'].includes(state.page))refresh(true);else schedule();},Math.max(30,Number(db.settings.REFRESH_SECONDS)||60)*1000);}
-  catch(e){state.stale=true;if(!quiet||!state.loaded){main.innerHTML=connectionPanel(e.message);symbols();}else{state.flash='ข้อมูลยังไม่อัปเดต: '+e.message;render();}announce(e.message);schedule();}
+function acceptSnapshot(result){
+  if(!result?.ok||result.accessMode!=='name-picker')throw new Error('Backend ยังเป็นเวอร์ชันตรวจบัญชี ให้แทน Code.gs และ GitHubBridge.html แล้ว Deploy ใหม่และใส่ URL ใหม่ใน index.html');
+  if(!result.user||result.user.email!==FiveSApi.selectedPerson())throw new Error('ชื่อผู้ใช้งานยังไม่ตรง กรุณาเลือกชื่อใหม่');
+  db=result;state.loaded=true;state.stale=false;
+}
+function personPicker(){
+  const picker=root.querySelector('#s-person');
+  const counts=new Map();db.people.forEach(p=>counts.set(p.name,(counts.get(p.name)||0)+1));
+  picker.innerHTML=options(db.people.map(p=>({value:p.email,label:p.name+(counts.get(p.name)>1?' ('+p.email+')':'')})),db.user.email,'ดูอย่างเดียว / เลือกชื่อตัวเอง');
+  picker.value=db.user.email;picker.disabled=state.busy;
+}
+async function start(){
+  if(state.busy)return;const generation=++connectionGeneration;
+  main.innerHTML='<section class="s-panel"><div class="block"><h2>กำลังโหลดข้อมูล 6S…</h2><p class="root-note">เปิดดูได้โดยไม่ต้องมีบัญชี Google</p></div></section>';
+  try{await FiveSApi.connect();if(generation!==connectionGeneration)return;await refresh();}
+  catch(e){if(generation===connectionGeneration){main.innerHTML=connectionPanel(e.message);symbols();announce(e.message);}}
+}
+async function refresh(quiet=false,whileBusy=false){
+  if(state.busy&&!whileBusy)return false;
+  try{const result=await rpc('getDashboardData');acceptSnapshot(result);render();clearTimeout(timer);timer=setTimeout(()=>{if(document.visibilityState==='visible'&&!['detail','new','audit-new'].includes(state.page))refresh(true);else schedule();},Math.max(30,Number(db.settings.REFRESH_SECONDS)||60)*1000);return true;}
+  catch(e){state.stale=true;if(!quiet||!state.loaded){main.innerHTML=connectionPanel(e.message);symbols();}else{state.flash='ข้อมูลยังไม่อัปเดต: '+e.message;render();}announce(e.message);schedule();return false;}
 }
 function schedule(){clearTimeout(timer);timer=setTimeout(()=>{if(document.visibilityState==='visible'&&!['detail','new','audit-new'].includes(state.page))refresh(true);else schedule();},60000)}
 function areaPicker(){return '<label class="s-flex" style="font-size:12px">พื้นที่ <select id="s-area" class="s-select"><option value="all">ทุกพื้นที่</option>'+options(db.areas,state.area)+'</select></label>'}
@@ -151,7 +155,7 @@ function render(){
   root.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-selected',b.dataset.page===(['detail','new','audit-new'].includes(state.page)?state.previous:state.page)));
   root.querySelector('#s-open-nav').textContent=db.issues.filter(x=>x.status!=='closed').length;
   root.querySelector('#s-date').textContent='ข้อมูล ณ '+fmt(db.today);
-  root.querySelector('#s-account').textContent=name(db.user.email)+' · '+db.user.role;
+  personPicker();root.querySelector('#s-account').textContent=db.user.email?'ผู้ใช้งาน: '+name(db.user.email):'ดูข้อมูลได้ทันที · เลือกชื่อเพื่ออัปเดตงาน';
   main.innerHTML=(state.stale?'<div class="form-error" role="alert">ข้อมูลอาจไม่ล่าสุด กรุณาโหลดใหม่ก่อนบันทึก</div>':'')+(state.flash?'<div class="toast" role="status">'+esc(state.flash)+'</div>':'')+({overview,tasks,repeat:recurrences,detail,new:newIssue,audits,auditsNew:auditForm,'audit-new':auditForm}[state.page]||overview)();
   symbols();if(state.page==='overview')requestAnimationFrame(drawTrend);
 }
@@ -187,20 +191,26 @@ function drawTrend(){const svg=root.querySelector('#s-trend');if(!svg)return;con
   const w=Math.max(220,svg.getBoundingClientRect().width),h=175,l=35,r=18,t=23,b=35,top=Math.max(5,Math.ceil(Math.max(...v.map(x=>x.n))/5)*5),x=i=>v.length===1?(w+l-r)/2:l+(w-l-r)*i/(v.length-1),y=n=>t+(h-t-b)*(1-n/top),nfmt=n=>Number(n.toFixed(1));svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.innerHTML='<title>ปัญหาต่อ100จุดตรวจจริง</title>'+[0,top/2,top].map(n=>'<line class="grid" x1="'+l+'" y1="'+y(n)+'" x2="'+(w-r)+'" y2="'+y(n)+'"/><text x="'+(l-7)+'" y="'+(y(n)+4)+'" text-anchor="end">'+nfmt(n)+'</text>').join('')+'<path class="line-new" d="'+v.map((d,i)=>(i?'L':'M')+x(i)+','+y(d.n)).join(' ')+'"/><path class="line-repeat" d="'+v.map((d,i)=>(i?'L':'M')+x(i)+','+y(d.rep)).join(' ')+'"/>'+v.map((d,i)=>'<circle class="point-new" cx="'+x(i)+'" cy="'+y(d.n)+'" r="4"><title>'+fmt(d.date)+' พบ '+nfmt(d.n)+' /100จุด ตรวจ '+d.points+' จุด</title></circle><circle class="point-repeat" cx="'+x(i)+'" cy="'+y(d.rep)+'" r="3.5"/><text x="'+x(i)+'" y="'+(y(d.n)-9)+'" text-anchor="middle">'+nfmt(d.n)+'</text><text x="'+x(i)+'" y="'+(h-10)+'" text-anchor="'+(i===0?'start':i===v.length-1?'end':'middle')+'">'+new Date(d.date+'T00:00:00Z').toLocaleDateString('th-TH',{day:'numeric',month:'short',timeZone:'UTC'})+'</text>').join('');const first=v[0].n,last=v[v.length-1].n;root.querySelector('#s-trend-result').textContent=v.length<2?'ต้องมีอย่างน้อย 2 รอบเพื่อเทียบแนวโน้ม':first===0?(last===0?'ยังไม่พบปัญหาในรอบที่ตรวจ':'ปัญหาเพิ่มจาก 0 เป็น '+nfmt(last)+' ต่อ100จุด'):(last<first?'ลดลง ':last>first?'เพิ่มขึ้น ':'คงที่ ')+Math.round(Math.abs(last-first)/first*100)+'% เทียบรอบแรก';
 }
 async function imagePayload(file){if(!(file instanceof File)||!file.size)return undefined;if(file.size>20000000)throw new Error('กรุณาใช้รูปต้นฉบับขนาดไม่เกิน 20 MB');if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('ใช้ภาพ JPEG, PNG หรือ WebP');const bitmap=await createImageBitmap(file);try{const scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);let url=canvas.toDataURL('image/jpeg',.8);if(url.length>1700000)url=canvas.toDataURL('image/jpeg',.55);if(url.length>1700000)throw new Error('ภาพยังใหญ่เกินไป กรุณาลดขนาดภาพ');return {mimeType:'image/jpeg',base64:url.split(',')[1]};}finally{bitmap.close();}}
-root.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||state.busy)return;const d=b.dataset;if(d.authorize){try{FiveSApi.authorize();announce('เปิด Google เพื่อตรวจบัญชีแล้ว กลับมากดเชื่อมต่อหลังอนุญาตสิทธิ์');}catch(e){main.innerHTML=connectionPanel(e.message);}return;}if(d.connect){const generation=++connectionGeneration;b.disabled=true;b.textContent='กำลังเชื่อมต่อ…';try{await FiveSApi.connect({popup:d.connect==='popup'});if(generation!==connectionGeneration)return;state.loaded=false;state.page='overview';state.detail=null;state.stale=true;await refresh();}catch(e){if(generation===connectionGeneration){main.innerHTML=connectionPanel(e.message);announce(e.message);}}finally{b.disabled=false;}return;}if(d.refresh){refresh();return}if(d.page){go(d.page);return}if(d.issue){open(d.issue);return}if(d.filter){taskList(d.filter);return}if(d.areaOpen){taskList('open',d.areaOpen);return}if(d.repeatArea){state.area=d.repeatArea;go('repeat');return}if(d.back){go(state.previous);return}if(d.new||d.recur){if(!canCreate())return;state.previous=state.page==='detail'?state.previous:state.page;state.parent=d.recur||null;go('new');return}if(d.newAudit){state.previous='audits';go('audit-new');return}if(d.image){const box=root.querySelector('#evidence-'+d.image);b.disabled=true;try{const image=await rpc('getEvidenceImage',state.detail,d.image);box.innerHTML='<img src="'+image.dataUrl+'" alt="ภาพหลักฐาน '+esc(d.image)+'">';}catch(e){b.disabled=false;announce(e.message);box.insertAdjacentHTML('beforeend','<small class="red">'+esc(e.message)+'</small>');}}});
-root.addEventListener('change',e=>{if(e.target.id==='s-area'){state.area=e.target.value;render();}if(e.target.name==='area'&&state.page==='new'){const s=root.querySelector('[name="auditId"]');if(s)s.innerHTML=options(db.audits.filter(a=>a.area===e.target.value).map(a=>({value:a.id,label:fmt(a.date)+' · '+a.label})),'','ไม่ผูกรอบตรวจ');}});
-root.addEventListener('submit',async e=>{e.preventDefault();if(state.busy)return;const form=e.target;if(!['s-action-form','s-plan-form'].includes(form.id))return;const fd=new FormData(form),payload={};fd.forEach((v,k)=>{if(!(v instanceof File))payload[k]=v;});payload.action=e.submitter?.value||form.dataset.action;payload.verified=fd.has('verified');payload.noRepeat=fd.has('noRepeat');if(!['create','audit'].includes(payload.action)){const x=db.issues.find(x=>x.id===state.detail);payload.id=x.id;payload.version=x.version;}const error=form.querySelector('.s-form-error');error.hidden=true;
+root.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||state.busy)return;const d=b.dataset;if(d.connect){await start();return;}if(d.refresh){if(FiveSApi.isConnected())await refresh();else await start();return}if(d.page){go(d.page);return}if(d.issue){open(d.issue);return}if(d.filter){taskList(d.filter);return}if(d.areaOpen){taskList('open',d.areaOpen);return}if(d.repeatArea){state.area=d.repeatArea;go('repeat');return}if(d.back){go(state.previous);return}if(d.new||d.recur){if(!canCreate())return;state.previous=state.page==='detail'?state.previous:state.page;state.parent=d.recur||null;go('new');return}if(d.newAudit){if(!canAudit())return;state.previous='audits';go('audit-new');return}if(d.image){const box=root.querySelector('#evidence-'+d.image);b.disabled=true;try{const image=await rpc('getEvidenceImage',state.detail,d.image);box.innerHTML='<img src="'+image.dataUrl+'" alt="ภาพหลักฐาน '+esc(d.image)+'">';}catch(e){b.disabled=false;announce(e.message);box.insertAdjacentHTML('beforeend','<small class="red">'+esc(e.message)+'</small>');}}});
+root.addEventListener('change',async e=>{if(state.busy)return;if(e.target.id==='s-person'){
+  const oldKey=db.user?.email||'';FiveSApi.selectPerson(e.target.value);state.busy=true;state.stale=true;
+  root.querySelectorAll('button,select').forEach(b=>b.disabled=true);
+  try{const ok=await refresh(false,true);if(!ok)FiveSApi.selectPerson(oldKey);else state.flash=db.user.email?'ผู้ใช้งาน: '+name(db.user.email):'โหมดดูข้อมูล';}
+  finally{state.busy=false;render();root.querySelectorAll('button,select').forEach(b=>b.disabled=false);}return;
+}if(e.target.id==='s-area'){state.area=e.target.value;render();}if(e.target.name==='area'&&state.page==='new'){const s=root.querySelector('[name="auditId"]');if(s)s.innerHTML=options(db.audits.filter(a=>a.area===e.target.value).map(a=>({value:a.id,label:fmt(a.date)+' · '+a.label})),'','ไม่ผูกรอบตรวจ');}});
+root.addEventListener('submit',async e=>{e.preventDefault();if(state.busy)return;const form=e.target;if(!['s-action-form','s-plan-form'].includes(form.id))return;const fd=new FormData(form),payload={};fd.forEach((v,k)=>{if(!(v instanceof File))payload[k]=v;});payload.action=e.submitter?.value||form.dataset.action;payload.verified=fd.has('verified');payload.noRepeat=fd.has('noRepeat');if(!['create','audit'].includes(payload.action)){const x=db.issues.find(x=>x.id===state.detail);payload.id=x.id;payload.version=x.version;}const error=form.querySelector('.s-form-error');error.hidden=true;if(!db.user?.email){error.textContent='เลือกชื่อตัวเองก่อนบันทึกหรืออัปเดตสถานะ';error.hidden=false;return;}
   if(state.stale){error.textContent='กรุณาโหลดข้อมูลใหม่ก่อนบันทึก';error.hidden=false;return;}
-  state.busy=true;const buttons=[...root.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+  state.busy=true;const buttons=[...root.querySelectorAll('button,select')];buttons.forEach(b=>b.disabled=true);
   let committed=false;
-  try{for(const key of ['beforeImage','afterImage','followupImage']){const file=fd.get(key);if(file instanceof File&&file.size)payload[key]=await imagePayload(file);}const result=await rpc(payload.action==='audit'?'saveAudit':'saveIssue',payload);committed=true;state.detail=result.id;state.page=payload.action==='audit'?'audits':'detail';const fresh=await rpc('getDashboardData');db=fresh;state.stale=false;state.flash=result.message;if(payload.action==='audit')state.page='audits';else{state.detail=result.id;state.page='detail';}render();announce(result.message);}
+  try{for(const key of ['beforeImage','afterImage','followupImage']){const file=fd.get(key);if(file instanceof File&&file.size)payload[key]=await imagePayload(file);}const result=await rpc(payload.action==='audit'?'saveAudit':'saveIssue',payload);committed=true;state.detail=result.id;state.page=payload.action==='audit'?'audits':'detail';const fresh=await rpc('getDashboardData');acceptSnapshot(fresh);state.flash=result.message;if(payload.action==='audit')state.page='audits';else{state.detail=result.id;state.page='detail';}render();announce(result.message);}
   catch(err){if(committed||err.kind==='WRITE_RESULT_UNKNOWN')state.stale=true;error.textContent=committed?'บันทึกแล้ว แต่โหลดข้อมูลใหม่ไม่สำเร็จ กรุณากดโหลดข้อมูลใหม่: '+err.message:err.message;error.hidden=false;announce(error.textContent);}
-  finally{state.busy=false;root.querySelectorAll('button').forEach(b=>b.disabled=false);}
+  finally{state.busy=false;root.querySelectorAll('button,select').forEach(b=>b.disabled=false);}
 });
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state.loaded&&!['detail','new','audit-new'].includes(state.page))refresh(true);});
 if(window.ResizeObserver)new ResizeObserver(()=>{if(state.page==='overview'&&state.loaded)drawTrend();}).observe(main);
 window.addEventListener('five-s-connection',e=>{if(!e.detail.connected&&state.loaded){state.stale=true;state.flash=e.detail.message;if(state.busy||['detail','new','audit-new'].includes(state.page)){announce(e.detail.message);}else{render();}}});
-main.innerHTML=connectionPanel();
+main.innerHTML=connectionPanel();if(FiveSApi.isConfigured())start();
 })();
 </script></body></html>
+
 
