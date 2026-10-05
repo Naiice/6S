@@ -124,7 +124,7 @@ const peopleOptions=roles=>db.people.filter(p=>roles.includes(p.role)).map(p=>({
 const field=(key,label,value='',type='text',required=false)=>'<label class="field">'+label+(required?' *':'')+'<input name="'+key+'" type="'+type+'" value="'+esc(value)+'" '+(required?'required':'')+'></label>';
 const text=(key,label,value='')=>'<label class="field">'+label+'<textarea name="'+key+'">'+esc(value)+'</textarea></label>';
 const select=(key,label,values,value='',required=false)=>'<label class="field">'+label+(required?' *':'')+'<select name="'+key+'" '+(required?'required':'')+'>'+options(values,value,'เลือก'+label)+'</select></label>';
-const photo=(key,label)=>'<label class="field">'+label+'<input name="'+key+'" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>';
+const photo=(key,label)=>'<label class="field">'+label+'<input name="'+key+'" type="file" accept="image/jpeg,image/png,image/webp"></label>';
 const uuid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(16)+'-'+Math.random().toString(16).slice(2)+'-'+Math.random().toString(16).slice(2);
 const formStart=(action,id='s-action-form')=>'<form id="'+id+'" data-action="'+action+'"><input type="hidden" name="requestId" value="'+uuid()+'"><div class="form-error s-form-error" role="alert" hidden></div>';
 function symbols(){if(window.lucide)lucide.createIcons({attrs:{width:16,height:16}})}
@@ -203,3 +203,4 @@ window.addEventListener('five-s-connection',e=>{if(!e.detail.connected&&state.lo
 main.innerHTML=connectionPanel();
 })();
 </script></body></html>
+
