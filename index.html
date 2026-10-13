@@ -35,6 +35,17 @@
             outline: none;
             transition: all 0.2s;
             box-sizing: border-box;
+            /* ทำให้กรอบยืดหดตามตัวอักษร (Shrink-wrap) */
+            white-space: nowrap;
+            display: inline-block;
+            cursor: text;
+        }
+
+        /* สร้าง Placeholder แบบจำลองสำหรับ ContentEditable */
+        .cert-input:empty::before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            pointer-events: none;
         }
 
         .cert-input:focus, .cert-input:hover {
@@ -44,8 +55,16 @@
         }
 
         /* Specific text alignments */
-        .text-left-input { text-align: left; padding-left: 1.5cqw; }
-        .text-center-input { text-align: center; }
+        .text-left-input { 
+            text-align: left; 
+            padding: 0.3cqw 1cqw; 
+        }
+        .text-center-input { 
+            text-align: center; 
+            padding: 0.3cqw 1cqw; 
+            /* ล็อกจุดศูนย์กลางไว้ที่เดิม กรอบจะขยายออกสองข้างเท่าๆ กัน */
+            transform: translateX(-50%); 
+        }
 
         /* Print Media Query: This is crucial for rendering the PDF/Print correctly */
         @media print {
@@ -99,11 +118,10 @@
                 background-color: white !important;
             }
 
-            /* Hide placeholders */
-            ::-webkit-input-placeholder { color: transparent !important; }
-            :-moz-placeholder { color: transparent !important; }
-            ::-moz-placeholder { color: transparent !important; }
-            :-ms-input-placeholder { color: transparent !important; }
+            /* Hide placeholders on print */
+            .cert-input:empty::before { 
+                color: transparent !important; 
+            }
 
             /* Clean up photo upload zone for printing */
             #photo-upload-zone { 
@@ -194,42 +212,40 @@
             <input type="file" id="photo-input" class="hidden" accept="image/*">
 
             <!-- Equipment Operator Name -->
-            <input type="text" class="cert-input text-left-input" 
-                   style="top: 27.2%; left: 37%; width: 27%; height: 4.5%;" 
-                   placeholder="พิมพ์ชื่อ-นามสกุล...">
+            <div contenteditable="true" class="cert-input text-left-input" 
+                 style="top: 27.2%; left: 37%; max-width: 40%;" 
+                 data-placeholder="พิมพ์ชื่อ-นามสกุล..."></div>
 
             <!-- Equipment Number -->
-            <input type="text" class="cert-input text-left-input" 
-                   style="top: 55.2%; left: 37%; width: 45%; height: 4.5%;" 
-                   placeholder="พิมพ์หมายเลขอุปกรณ์...">
+            <div contenteditable="true" class="cert-input text-left-input" 
+                 style="top: 55.2%; left: 37%; max-width: 50%;" 
+                 data-placeholder="พิมพ์หมายเลขอุปกรณ์..."></div>
 
             <!-- Training Record Table Row -->
             <!-- Date (วันที่สอบ) -->
-            <input type="text" class="cert-input text-center-input" 
-                   style="top: 80.5%; left: 8.5%; width: 14.8%; height: 6.5%;" 
-                   placeholder="วว/ดด/ปปปป">
+            <div contenteditable="true" class="cert-input text-center-input" 
+                 style="top: 81.3%; left: 15.9%; max-width: 15%;" 
+                 data-placeholder="วว/ดด/ปปปป"></div>
                    
             <!-- Device Name (ชื่ออุปกรณ์) -->
-            <input type="text" class="cert-input text-center-input" 
-                   style="top: 80.5%; left: 23.3%; width: 17.3%; height: 6.5%;" 
-                   placeholder="ชื่ออุปกรณ์">
+            <div contenteditable="true" class="cert-input text-center-input" 
+                 style="top: 81.3%; left: 32%; max-width: 17%;" 
+                 data-placeholder="ชื่ออุปกรณ์"></div>
 
             <!-- Theory Score (ผลสอบทฤษฎี) -->
-            <input type="text" class="cert-input text-center-input" 
-                   style="top: 80.5%; left: 40.6%; width: 17.7%; height: 6.5%;" 
-                   placeholder="คะแนนทฤษฎี">
+            <div contenteditable="true" class="cert-input text-center-input" 
+                 style="top: 81.3%; left: 49.6%; max-width: 17%;" 
+                 data-placeholder="คะแนนทฤษฎี"></div>
 
             <!-- Practice Score (ผลสอบปฏิบัติ) -->
-            <!-- Note: The template image already has "合格" here. 
-                 Typing here will cover it with a white background upon printing -->
-            <input type="text" class="cert-input text-center-input" 
-                   style="top: 80.5%; left: 58.3%; width: 17.7%; height: 6.5%;" 
-                   placeholder="พิมพ์เพื่อแก้ '合格'">
+            <div contenteditable="true" class="cert-input text-center-input" 
+                 style="top: 81.3%; left: 67.3%; max-width: 17%;" 
+                 data-placeholder="พิมพ์เพื่อแก้ '合格'"></div>
 
             <!-- Expiry Date (วันหมดอายุ) -->
-            <input type="text" class="cert-input text-center-input" 
-                   style="top: 80.5%; left: 76.0%; width: 15.5%; height: 6.5%;" 
-                   placeholder="วว/ดด/ปปปป">
+            <div contenteditable="true" class="cert-input text-center-input" 
+                 style="top: 81.3%; left: 83.75%; max-width: 15%;" 
+                 data-placeholder="วว/ดด/ปปปป"></div>
 
         </div>
     </main>
@@ -284,12 +300,23 @@
         updatePageSize();
 
         // 3. Handle Input Backgrounds for Print
-        // Add a class 'has-value' if the user types something.
-        // This allows the CSS to apply a white background during print to hide template text underneath.
         const inputs = document.querySelectorAll('.cert-input');
         inputs.forEach(input => {
+            // บล็อกการกด Enter ไม่ให้ขึ้นบรรทัดใหม่
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur(); 
+                }
+            });
+
             input.addEventListener('input', function() {
-                if (this.value.trim().length > 0) {
+                // แก้บัค Browser แอบใส่ <br> เวลาลบข้อความจนหมด
+                if (this.textContent.trim().length === 0 && this.innerHTML !== '') {
+                    this.innerHTML = ''; 
+                }
+
+                if (this.textContent.trim().length > 0) {
                     this.classList.add('has-value');
                 } else {
                     this.classList.remove('has-value');
@@ -302,7 +329,7 @@
             if(confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด?')) {
                 // Clear all text inputs
                 inputs.forEach(input => {
-                    input.value = '';
+                    input.textContent = '';
                     input.classList.remove('has-value');
                 });
                 // Clear photo
