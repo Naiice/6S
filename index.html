@@ -135,14 +135,6 @@
 
             <hr class="border-gray-200">
 
-            <!-- Template Upload (Fallback in case system image fails) -->
-            <div class="bg-red-50 p-3 rounded-lg border border-red-200">
-                <label for="template-upload" class="block text-sm font-semibold text-red-700 mb-2">
-                    * อัปโหลดรูปแม่แบบ (หากรูปไม่ขึ้น)
-                </label>
-                <input type="file" id="template-upload" accept="image/*" class="w-full text-sm text-gray-900 bg-white border border-gray-300 rounded-md cursor-pointer focus:outline-none p-1.5">
-            </div>
-
             <!-- Page Size Selector -->
             <div>
                 <label for="page-size" class="block text-sm font-semibold text-gray-700 mb-2">ขนาดกระดาษ (Page Size)</label>
@@ -173,17 +165,20 @@
     <main id="preview-section" class="flex-1 bg-gray-200 p-4 md:p-8 flex justify-center items-start overflow-y-auto">
         
         <!-- The Certificate -->
-        <div id="certificate-container" class="relative w-full max-w-[800px] shadow-2xl rounded-sm bg-white overflow-hidden">
+        <div id="certificate-container" class="relative w-full max-w-[800px] shadow-2xl rounded-sm bg-white overflow-hidden" style="aspect-ratio: 1 / 1.414;">
             
-            <!-- Default Background Image with Error Handling -->
-            <img id="template-bg" src="image_c249a2.png" alt="Template Background" class="absolute inset-0 w-full h-full z-0 pointer-events-none object-fill" onerror="this.style.display='none'; document.getElementById('bg-error-msg').style.display='flex';">
+            <!-- Google Drive Background Image with Error Handling -->
+            <img id="template-bg" 
+                 src="https://drive.google.com/thumbnail?id=1P1Oqss79TTTTuUbJN25xADlCuzivRaNm&sz=w2000" 
+                 alt="Template Background" 
+                 class="absolute inset-0 w-full h-full z-0 pointer-events-none object-fill" 
+                 onerror="this.style.display='none'; document.getElementById('bg-error-msg').style.display='flex';">
             
             <!-- Fallback Error Message (Shown only if image fails to load) -->
             <div id="bg-error-msg" class="absolute inset-0 z-0 hidden flex-col items-center justify-center bg-gray-100 border-2 border-dashed border-gray-300 text-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                <p class="font-bold text-xl text-gray-700">รูปแม่แบบไม่แสดงผล</p>
-                <p class="text-md mt-2">เนื่องจากข้อจำกัดของระบบ Preview</p>
-                <p class="text-md mt-1 text-red-600 font-semibold">กรุณากดปุ่ม "อัปโหลดรูปแม่แบบ" ที่เมนูด้านซ้ายเพื่อใส่รูปอีกครั้ง</p>
+                <p class="font-bold text-xl text-gray-700">โหลดรูปแม่แบบไม่สำเร็จ</p>
+                <p class="text-md mt-2">โปรดตรวจสอบลิงก์ Google Drive หรือการเชื่อมต่ออินเทอร์เน็ต</p>
             </div>
 
             <!-- Photo Upload Zone (Top Right) -->
@@ -240,24 +235,9 @@
     </main>
 
     <script>
-        // 0. Handle Template Upload Logic (Fallback for broken preview)
-        const templateUpload = document.getElementById('template-upload');
+        // 0. Set up template background element
         const templateBg = document.getElementById('template-bg');
         const bgErrorMsg = document.getElementById('bg-error-msg');
-
-        templateUpload.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    templateBg.src = event.target.result;
-                    // Force display block in case it was hidden by onerror
-                    templateBg.style.display = 'block';
-                    bgErrorMsg.style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
 
         // 1. Handle Photo Upload Logic (For the user's Picture box)
         const photoZone = document.getElementById('photo-upload-zone');
@@ -333,9 +313,10 @@
                 photoZone.style.border = '';
                 photoZone.style.backgroundColor = '';
                 
-                // Clear template upload fallback
-                templateUpload.value = '';
-                templateBg.src = 'image_c249a2.png'; // reset to default
+                // Reset background image link to the new Google Drive format
+                templateBg.src = 'https://drive.google.com/thumbnail?id=1P1Oqss79TTTTuUbJN25xADlCuzivRaNm&sz=w2000';
+                templateBg.style.display = 'block';
+                bgErrorMsg.style.display = 'none';
                 
                 // Reset size to A4
                 sizeSelector.value = 'A4';
